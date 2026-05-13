@@ -1,16 +1,89 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
 
-<?import javafx.scene.control.Button?>
-<VBox alignment="CENTER" spacing="20.0" xmlns:fx="http://javafx.com/fxml"
-      fx:controller="org.example.thread_data_import.HelloController">
-    <padding>
-        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
-    </padding>
+<BorderPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="org.example.thread_data_import.HelloController"
+            prefWidth="1200" prefHeight="700">
 
-    <Label fx:id="welcomeText"/>
-    <Button text="Hello!" onAction="#onHelloButtonClick"/>
-</VBox>
+    <top>
+        <HBox spacing="10" alignment="CENTER_LEFT">
+            <padding><Insets top="10" right="15" bottom="10" left="15"/></padding>
+            <Label text="Data Import System" style="-fx-font-size: 18; -fx-font-weight: bold;"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label fx:id="totalCountLabel" text="Total: 0 records"/>
+        </HBox>
+    </top>
+
+    <center>
+        <SplitPane dividerPositions="0.25">
+
+            <ScrollPane fitToWidth="true" hbarPolicy="NEVER">
+                <VBox spacing="8">
+                    <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
+
+                    <Button text="▶ Load Data (3 threads)" maxWidth="Infinity" onAction="#onLoadClicked"/>
+                    <Button text="⏹ Stop"                  maxWidth="Infinity" onAction="#onStopClicked"/>
+
+                    <Separator/>
+
+                    <Label text="Thread 1" style="-fx-font-weight: bold;"/>
+                    <ProgressBar fx:id="progressBar1" progress="0" maxWidth="Infinity"/>
+                    <Label fx:id="threadStatus1" text="Waiting..." wrapText="true"/>
+
+                    <Label text="Thread 2" style="-fx-font-weight: bold;"/>
+                    <ProgressBar fx:id="progressBar2" progress="0" maxWidth="Infinity"/>
+                    <Label fx:id="threadStatus2" text="Waiting..." wrapText="true"/>
+
+                    <Label text="Thread 3" style="-fx-font-weight: bold;"/>
+                    <ProgressBar fx:id="progressBar3" progress="0" maxWidth="Infinity"/>
+                    <Label fx:id="threadStatus3" text="Waiting..." wrapText="true"/>
+
+                    <Separator/>
+
+                    <Label text="Search (name / email):"/>
+                    <TextField fx:id="searchField" promptText="Type to search..."/>
+
+                    <Label text="Birth date from / to:"/>
+                    <DatePicker fx:id="dateFrom" promptText="From" maxWidth="Infinity"/>
+                    <DatePicker fx:id="dateTo"   promptText="To"   maxWidth="Infinity"/>
+
+                    <Label text="Sort by:"/>
+                    <ComboBox fx:id="sortFieldCombo" maxWidth="Infinity"/>
+                    <ComboBox fx:id="sortOrderCombo" maxWidth="Infinity"/>
+
+                    <Button text="Clear filters" maxWidth="Infinity" onAction="#onClearFilters"/>
+
+                </VBox>
+            </ScrollPane>
+
+            <TableView fx:id="tableView">
+                <columns>
+                    <TableColumn fx:id="colId"        text="ID"/>
+                    <TableColumn fx:id="colFirstName" text="First Name"/>
+                    <TableColumn fx:id="colLastName"  text="Last Name"/>
+                    <TableColumn fx:id="colEmail"     text="Email"/>
+                    <TableColumn fx:id="colGender"    text="Gender"/>
+                    <TableColumn fx:id="colCountry"   text="Country"/>
+                    <TableColumn fx:id="colDomain"    text="Domain"/>
+                    <TableColumn fx:id="colBirthDate" text="Birth Date"/>
+                </columns>
+                <columnResizePolicy>
+                    <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                </columnResizePolicy>
+            </TableView>
+
+        </SplitPane>
+    </center>
+
+    <bottom>
+        <HBox spacing="20">
+            <padding><Insets top="6" right="15" bottom="6" left="15"/></padding>
+            <Label fx:id="statusLabel" text="Ready."/>
+            <Label fx:id="shownCountLabel" text=""/>
+        </HBox>
+    </bottom>
+
+</BorderPane>
