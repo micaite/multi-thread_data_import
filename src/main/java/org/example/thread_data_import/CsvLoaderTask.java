@@ -28,7 +28,7 @@ public class CsvLoaderTask extends Task<List<Person>> {
         updateMessage("Thread " + threadNumber + " (" + fileName + "): starting...");
         updateProgress(0, 100);
 
-        Thread.sleep(threadNumber * 600L);
+        Thread.sleep(500L);
 
         long totalLines;
         try {

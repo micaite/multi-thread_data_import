@@ -87,8 +87,6 @@ public class HelloController {
 
     @FXML
     protected void onLoadClicked() {
-       //TODO
-
         stopTasks();
         allData.clear();
         filteredData.clear();
@@ -101,32 +99,37 @@ public class HelloController {
         Label[] statuses = {threadStatus1, threadStatus2, threadStatus3};
 
         for (int i = 0; i < 3; i++){
-            final int idx = 1;
+            final int idx = i;
+            final ProgressBar  bar    = bars[i];
+            final Label        status = statuses[i];
 
             CsvLoaderTask task = new CsvLoaderTask(FILE_PATHS[i], FILE_PATHS[i], i + 1 );
             tasks.add(task);
-             bars[idx].progressProperty().bind(task.progressProperty().divide(100.0));
 
-             task.messageProperty().addListener((o, old, msg) ->
-                     Platform.runLater(() -> statuses[idx].setText(msg)));
+            bar.progressProperty().bind(task.progressProperty().divide(100.0));
+
+            task.messageProperty().addListener((o, old, msg) ->
+                    Platform.runLater(() -> status.setText(msg))
+            );
 
             task.setOnSucceeded(e -> {
                 List<Person> loaded = task.getValue();
                 Platform.runLater(() -> {
                     allData.addAll(loaded);
                     applyFilters();
-                    statuses[idx].setStyle("-fx-text-fill: green;");
+                    status.setStyle("-fx-text-fill: green;");
                     checkIfAllDone();
                 });
             });
 
             task.setOnFailed(e -> {
-                String error = task.getException() != null ? task.getException().getMessage() : "Unknown error";
+                String error = task.getException() != null
+                        ? task.getException().getMessage() : "Unknown error";
                 Platform.runLater(() -> {
-                    statuses[idx].setText("✗ " + error);
-                    statuses[idx].setStyle("-fx-text-fill: red");
-                    bars[idx].progressProperty().unbind();
-                    setStatus("Error in thread" + (idx + 1) + ": " + error);
+                    status.setText("✗ " + error);
+                    status.setStyle("-fx-text-fill: red;");
+                    bar.progressProperty().unbind();
+                    setStatus("Error in thread " + (idx + 1) + ": " + error);
                 });
             });
 
