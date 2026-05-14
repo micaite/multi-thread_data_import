@@ -17,7 +17,7 @@ public class Person {
     private final StringProperty domainName   = new SimpleStringProperty();
     private final StringProperty birthDate    = new SimpleStringProperty();
 
-    private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("M/d/yyyy");
+    private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     public Person(String id, String firstName, String lastName, String email,
                   String gender, String country, String domainName, String birthDate) {

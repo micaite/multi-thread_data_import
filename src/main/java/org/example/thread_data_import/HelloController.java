@@ -88,6 +88,51 @@ public class HelloController {
     @FXML
     protected void onLoadClicked() {
        //TODO
+
+        stopTasks();
+        allData.clear();
+        filteredData.clear();
+        tasks.clear();
+
+        resetProgress();
+        setStatus("Loading data with 3 threads...");
+
+        ProgressBar[] bars = {progressBar1, progressBar2, progressBar3};
+        Label[] statuses = {threadStatus1, threadStatus2, threadStatus3};
+
+        for (int i = 0; i < 3; i++){
+            final int idx = 1;
+
+            CsvLoaderTask task = new CsvLoaderTask(FILE_PATHS[i], FILE_PATHS[i], i + 1 );
+            tasks.add(task);
+             bars[idx].progressProperty().bind(task.progressProperty().divide(100.0));
+
+             task.messageProperty().addListener((o, old, msg) ->
+                     Platform.runLater(() -> statuses[idx].setText(msg)));
+
+            task.setOnSucceeded(e -> {
+                List<Person> loaded = task.getValue();
+                Platform.runLater(() -> {
+                    allData.addAll(loaded);
+                    applyFilters();
+                    statuses[idx].setStyle("-fx-text-fill: green;");
+                    checkIfAllDone();
+                });
+            });
+
+            task.setOnFailed(e -> {
+                String error = task.getException() != null ? task.getException().getMessage() : "Unknown error";
+                Platform.runLater(() -> {
+                    statuses[idx].setText("✗ " + error);
+                    statuses[idx].setStyle("-fx-text-fill: red");
+                    bars[idx].progressProperty().unbind();
+                    setStatus("Error in thread" + (idx + 1) + ": " + error);
+                });
+            });
+
+            executor.submit(task);
+
+        }
     }
 
     @FXML
