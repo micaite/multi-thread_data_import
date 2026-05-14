@@ -103,7 +103,10 @@ public class HelloController {
             final ProgressBar  bar    = bars[i];
             final Label        status = statuses[i];
 
-            CsvLoaderTask task = new CsvLoaderTask(FILE_PATHS[i], FILE_PATHS[i], i + 1 );
+            CsvLoaderTask task = new CsvLoaderTask(FILE_PATHS[i], FILE_PATHS[i], i + 1, person -> {
+                allData.add(person);
+                applyFilters();
+            });
             tasks.add(task);
 
             bar.progressProperty().bind(task.progressProperty().divide(100.0));
@@ -113,10 +116,7 @@ public class HelloController {
             );
 
             task.setOnSucceeded(e -> {
-                List<Person> loaded = task.getValue();
                 Platform.runLater(() -> {
-                    allData.addAll(loaded);
-                    applyFilters();
                     status.setStyle("-fx-text-fill: green;");
                     checkIfAllDone();
                 });

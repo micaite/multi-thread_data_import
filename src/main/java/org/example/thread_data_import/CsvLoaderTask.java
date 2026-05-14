@@ -1,5 +1,7 @@
 package org.example.thread_data_import;
 
+import com.sun.source.tree.PatternCaseLabelTree;
+import javafx.application.Platform;
 import javafx.concurrent.Task;
 
 import java.io.BufferedReader;
@@ -8,22 +10,27 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class CsvLoaderTask extends Task<List<Person>> {
 
     private final String filePath;
     private final String fileName;
     private final int threadNumber;
+    private final Consumer<Person> onPersonLoaded;
 
-    public CsvLoaderTask (String filePath, String fileName, int threadNumber){
+    public CsvLoaderTask (String filePath, String fileName, int threadNumber, Consumer<Person> onPersonLoaded){
         this.filePath = filePath;
         this.fileName = fileName;
         this.threadNumber = threadNumber;
+        this.onPersonLoaded = onPersonLoaded;
 
     }
 
     @Override
     protected List<Person> call() throws Exception {
+
+        int[] count = {0};
 
         updateMessage("Thread " + threadNumber + " (" + fileName + "): starting...");
         updateProgress(0, 100);
@@ -63,7 +70,8 @@ public class CsvLoaderTask extends Task<List<Person>> {
 
                 Person person = parseLine(line);
                 if (person != null) {
-                    people.add(person);
+                    count[0]++;
+                    Platform.runLater(() -> onPersonLoaded.accept(person));
                 }
 
                 lineCount++;
@@ -84,9 +92,9 @@ public class CsvLoaderTask extends Task<List<Person>> {
         }
 
         updateProgress(100, 100);
-        updateMessage("Thread " + threadNumber + " (" + fileName + "): ✓ finished! Updated " + people.size() + " records.");
+        updateMessage("Thread " + threadNumber + " (" + fileName + "): ✓ finished! Updated " + count[0] + " records.");
 
-        return people;
+        return null;
     }
 
     // skaito po viena eil ir grazina Person obj
