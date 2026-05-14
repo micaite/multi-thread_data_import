@@ -101,7 +101,7 @@ public class CsvLoaderTask extends Task<List<Person>> {
 
     private Person parseLine(String line) {
         try {
-            String[] parts = splitCsv(line);
+            String[] parts = line.split(",");
             if (parts.length < 8) return null;
 
             return new Person(
@@ -117,25 +117,5 @@ public class CsvLoaderTask extends Task<List<Person>> {
         } catch (Exception e) {
             return null;
         }
-    }
-
-    private String[] splitCsv (String line){
-        List<String> tokens = new ArrayList<>();
-        StringBuilder current = new StringBuilder();
-        boolean inQuotes = false;
-
-        for (char c : line.toCharArray()) {
-            if (c == '"') {
-                inQuotes = !inQuotes;
-            } else if (c == ',' && !inQuotes) {
-                tokens.add(current.toString());
-                current.setLength(0);
-            } else {
-                current.append(c);
-            }
-        }
-        tokens.add(current.toString());
-
-        return tokens.toArray(new String[0]);
     }
 }
