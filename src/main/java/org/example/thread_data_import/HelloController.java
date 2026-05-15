@@ -10,12 +10,12 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class HelloController {
 
-    @FXML private TableView<Person>       tableView;
+    @FXML private TableView<Person>           tableView;
     @FXML private TableColumn<Person, String> colId;
     @FXML private TableColumn<Person, String> colFirstName;
     @FXML private TableColumn<Person, String> colLastName;
@@ -28,22 +28,27 @@ public class HelloController {
     @FXML private ProgressBar progressBar1, progressBar2, progressBar3;
     @FXML private Label       threadStatus1, threadStatus2, threadStatus3;
 
-    @FXML private TextField          searchField;
-    @FXML private DatePicker         dateFrom;
-    @FXML private DatePicker         dateTo;
-    @FXML private ComboBox<String>   sortFieldCombo;
-    @FXML private ComboBox<String>   sortOrderCombo;
+    @FXML private TextField        searchField;
+    @FXML private DatePicker       dateFrom;
+    @FXML private DatePicker       dateTo;
+    @FXML private ComboBox<String> sortFieldCombo;
+    @FXML private ComboBox<String> sortOrderCombo;
 
     @FXML private Label statusLabel;
     @FXML private Label shownCountLabel;
     @FXML private Label totalCountLabel;
 
-    private final ObservableList<Person> allData = FXCollections.observableArrayList();
+    // thread-safe list - multiple threads can add simultaneously
+    private final ObservableList<Person> allData = FXCollections.synchronizedObservableList(
+            FXCollections.observableList(new CopyOnWriteArrayList<>())
+    );
     private final ObservableList<Person> filteredData = FXCollections.observableArrayList();
 
-    private final FilterService filterService = new FilterService();
-    private ExecutorService executor;
-    private final List<CsvLoaderTask> tasks = new ArrayList<>();
+    private final FilterService       filterService = new FilterService();
+    private final List<CsvLoaderTask> tasks         = new ArrayList<>();
+    private final List<Thread>        threads       = new ArrayList<>();
+
+    private final AtomicInteger finishedCount = new AtomicInteger(0);
 
     private static final String[] FILE_PATHS = {
             "MOCK_DATA1.csv",
@@ -64,11 +69,9 @@ public class HelloController {
 
         tableView.setItems(filteredData);
 
-        ///
-
         sortFieldCombo.setItems(FXCollections.observableArrayList(
                 "None", "First Name", "Last Name", "Email", "Country", "ID", "Birth Date"));
-        sortFieldCombo.setValue("— None —");
+        sortFieldCombo.setValue("None");
 
         sortOrderCombo.setItems(FXCollections.observableArrayList(
                 "Ascending  (A → Z)", "Descending  (Z → A)"));
@@ -79,10 +82,6 @@ public class HelloController {
         dateTo.valueProperty().addListener((o, old, val) -> applyFilters());
         sortFieldCombo.valueProperty().addListener((o, old, val) -> applyFilters());
         sortOrderCombo.valueProperty().addListener((o, old, val) -> applyFilters());
-
-        ///
-
-        executor = Executors.newFixedThreadPool(3);
     }
 
     @FXML
@@ -91,57 +90,51 @@ public class HelloController {
         allData.clear();
         filteredData.clear();
         tasks.clear();
+        threads.clear();
+        finishedCount.set(0);
 
         resetProgress();
         setStatus("Loading data with 3 threads...");
 
-        ProgressBar[] bars = {progressBar1, progressBar2, progressBar3};
-        Label[] statuses = {threadStatus1, threadStatus2, threadStatus3};
+        ProgressBar[] bars     = { progressBar1, progressBar2, progressBar3 };
+        Label[]       statuses = { threadStatus1, threadStatus2, threadStatus3 };
 
-        for (int i = 0; i < 3; i++){
-            final int idx = i;
-            final ProgressBar  bar    = bars[i];
-            final Label        status = statuses[i];
+        for (int i = 0; i < 3; i++) {
+            final ProgressBar bar    = bars[i];
+            final Label       status = statuses[i];
+            final int         idx    = i;
 
-            CsvLoaderTask task = new CsvLoaderTask(FILE_PATHS[i], FILE_PATHS[i], i + 1, person -> {
-                allData.add(person);
-                applyFilters();
-            });
-            tasks.add(task);
-
-            bar.progressProperty().bind(task.progressProperty().divide(100.0));
-
-            task.messageProperty().addListener((o, old, msg) ->
-                    Platform.runLater(() -> status.setText(msg))
+            CsvLoaderTask task = new CsvLoaderTask(
+                    FILE_PATHS[i],
+                    FILE_PATHS[i],
+                    i + 1,
+                    person -> {
+                        allData.add(person);
+                        applyFilters();
+                    },
+                    progress -> bar.setProgress(progress / 100.0),
+                    msg -> status.setText(msg),
+                    () -> {
+                        status.setStyle("-fx-text-fill: green;");
+                        checkIfAllDone();
+                    }
             );
 
-            task.setOnSucceeded(e -> {
-                Platform.runLater(() -> {
-                    status.setStyle("-fx-text-fill: green;");
-                    checkIfAllDone();
-                });
-            });
+            tasks.add(task);
 
-            task.setOnFailed(e -> {
-                String error = task.getException() != null
-                        ? task.getException().getMessage() : "Unknown error";
-                Platform.runLater(() -> {
-                    status.setText("✗ " + error);
-                    status.setStyle("-fx-text-fill: red;");
-                    bar.progressProperty().unbind();
-                    setStatus("Error in thread " + (idx + 1) + ": " + error);
-                });
-            });
+            Thread thread = new Thread(task);
+            thread.setName("csv-loader-" + (idx + 1));
+            thread.setDaemon(true);
+            thread.start();
 
-            executor.submit(task);
-
+            threads.add(thread);
         }
     }
 
     @FXML
     protected void onStopClicked() {
         stopTasks();
-        setStatus("Stopped");
+        setStatus("Stopped.");
     }
 
     @FXML
@@ -150,7 +143,7 @@ public class HelloController {
         dateFrom.setValue(null);
         dateTo.setValue(null);
         sortFieldCombo.setValue("None");
-        sortOrderCombo.setValue("AScending (A → Z)");
+        sortOrderCombo.setValue("Ascending  (A → Z)");
     }
 
     private void applyFilters() {
@@ -175,6 +168,7 @@ public class HelloController {
 
     private void stopTasks() {
         tasks.forEach(CsvLoaderTask::cancel);
+        threads.forEach(Thread::interrupt);
         resetProgress();
     }
 
@@ -182,17 +176,15 @@ public class HelloController {
         ProgressBar[] bars     = { progressBar1, progressBar2, progressBar3 };
         Label[]       statuses = { threadStatus1, threadStatus2, threadStatus3 };
         for (int i = 0; i < 3; i++) {
-            bars[i].progressProperty().unbind();
             bars[i].setProgress(0);
             statuses[i].setText("Waiting...");
             statuses[i].setStyle("");
         }
     }
 
-    private void checkIfAllDone () {
-        boolean allDone = tasks.stream().allMatch(CsvLoaderTask::isDone);
-        if (allDone) {
-            setStatus("Done! Loaded " + allData.size() + " records ");
+    private void checkIfAllDone() {
+        if (finishedCount.incrementAndGet() == 3) {
+            setStatus("Done! Loaded " + allData.size() + " records.");
             totalCountLabel.setText("Total: " + allData.size() + " records");
         }
     }

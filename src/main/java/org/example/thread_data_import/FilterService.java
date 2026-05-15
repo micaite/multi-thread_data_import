@@ -1,10 +1,8 @@
 package org.example.thread_data_import;
 
-import javax.imageio.plugins.jpeg.JPEGImageReadParam;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 import java.util.stream.Collectors;
 
 public class FilterService {
