@@ -19,7 +19,6 @@ public class CsvLoaderTask implements Runnable {
     private final Consumer<String>  onMessage;
     private final Runnable          onFinished;
 
-    // volatile - ensures visibility across threads
     private volatile boolean cancelled = false;
 
     public CsvLoaderTask(String filePath, String fileName, int threadNumber,
@@ -123,11 +122,17 @@ public class CsvLoaderTask implements Runnable {
 
     private Person parseLine(String line) {
         try {
-            String[] parts = line.split(",");
+            String[] parts = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
             if (parts.length < 8) return null;
             return new Person(
-                    parts[0].trim(), parts[1].trim(), parts[2].trim(), parts[3].trim(),
-                    parts[4].trim(), parts[5].trim(), parts[6].trim(), parts[7].trim()
+                    parts[0].trim(),
+                    parts[1].trim(),
+                    parts[2].trim(),
+                    parts[3].trim(),
+                    parts[4].trim(),
+                    parts[5].trim(),
+                    parts[6].trim(),
+                    parts[7].trim()
             );
         } catch (Exception e) {
             return null;

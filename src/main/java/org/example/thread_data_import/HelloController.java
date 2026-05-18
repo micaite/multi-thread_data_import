@@ -38,7 +38,6 @@ public class HelloController {
     @FXML private Label shownCountLabel;
     @FXML private Label totalCountLabel;
 
-    // thread-safe list - multiple threads can add simultaneously
     private final ObservableList<Person> allData = FXCollections.synchronizedObservableList(
             FXCollections.observableList(new CopyOnWriteArrayList<>())
     );
@@ -74,8 +73,8 @@ public class HelloController {
         sortFieldCombo.setValue("None");
 
         sortOrderCombo.setItems(FXCollections.observableArrayList(
-                "Ascending  (A → Z)", "Descending  (Z → A)"));
-        sortOrderCombo.setValue("Ascending  (A → Z)");
+                "Ascending", "Descending"));
+        sortOrderCombo.setValue("Ascending");
 
         searchField.textProperty().addListener((o, old, val) -> applyFilters());
         dateFrom.valueProperty().addListener((o, old, val) -> applyFilters());
@@ -143,7 +142,7 @@ public class HelloController {
         dateFrom.setValue(null);
         dateTo.setValue(null);
         sortFieldCombo.setValue("None");
-        sortOrderCombo.setValue("Ascending  (A → Z)");
+        sortOrderCombo.setValue("Ascending");
     }
 
     private void applyFilters() {
